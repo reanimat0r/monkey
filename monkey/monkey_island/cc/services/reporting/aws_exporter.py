@@ -6,7 +6,7 @@ import boto3
 from botocore.exceptions import UnknownServiceError
 
 from common.cloud.aws.aws_instance import AwsInstance
-from monkey_island.cc.environment.environment import load_server_configuration_from_file
+from monkey_island.cc.environment import EnvironmentConfig
 from monkey_island.cc.services.reporting.exporter import Exporter
 
 __authors__ = ['maor.rayzin', 'shay.nehmad']
@@ -68,7 +68,7 @@ class AWSExporter(Exporter):
             # azure and conficker are not relevant issues for an AWS env
         }
 
-        configured_product_arn = load_server_configuration_from_file()['aws'].get('sec_hub_product_arn', '')
+        configured_product_arn = EnvironmentConfig.get_from_file().aws.get('sec_hub_product_arn', '')
         product_arn = 'arn:aws:securityhub:{region}:{arn}'.format(region=region, arn=configured_product_arn)
         instance_arn = 'arn:aws:ec2:' + str(region) + ':instance:{instance_id}'
         # Not suppressing error here on purpose.
@@ -299,7 +299,7 @@ class AWSExporter(Exporter):
             title="Machines are accessible using passwords supplied by the user during the Monkey's configuration.",
             description="Change {0}'s password to a complex one-use password that is not shared with other computers on the "
                         "network.",
-            recommendation="The machine machine ({ip_address}) is vulnerable to a WMI attack. The Monkey authenticated over "
+            recommendation="The machine {machine} ({ip_address}) is vulnerable to a WMI attack. The Monkey authenticated over "
                            "the WMI protocol with user {username} and its password.".format(
                             machine=issue['machine'],
                             ip_address=issue['ip_address'],
@@ -316,7 +316,7 @@ class AWSExporter(Exporter):
             title="Machines are accessible using passwords supplied by the user during the Monkey's configuration.",
             description="Change {0}'s password to a complex one-use password that is not shared with other computers on the "
                         "network.".format(issue['username']),
-            recommendation="The machine machine ({ip_address}) is vulnerable to a WMI attack. The Monkey used a "
+            recommendation="The machine {machine} ({ip_address}) is vulnerable to a WMI attack. The Monkey used a "
                            "pass-the-hash attack over WMI protocol with user {username}".format(
                             machine=issue['machine'],
                             ip_address=issue['ip_address'],

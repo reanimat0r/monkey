@@ -1,22 +1,25 @@
 import functools
+import ipaddress
 import itertools
 import logging
-
-import ipaddress
-from bson import json_util
 from enum import Enum
+
+from bson import json_util
 
 from common.network.network_range import NetworkRange
 from common.network.segmentation_utils import get_ip_in_src_and_not_in_dst
 from monkey_island.cc.database import mongo
 from monkey_island.cc.models import Monkey
+from monkey_island.cc.network_utils import get_subnets, local_ip_addresses
 from monkey_island.cc.services.config import ConfigService
-from monkey_island.cc.services.configuration.utils import get_config_network_segments_as_subnet_groups
+from monkey_island.cc.services.configuration.utils import \
+    get_config_network_segments_as_subnet_groups
 from monkey_island.cc.services.node import NodeService
 from monkey_island.cc.services.reporting.pth_report import PTHReportService
-from monkey_island.cc.services.reporting.report_exporter_manager import ReportExporterManager
-from monkey_island.cc.services.reporting.report_generation_synchronisation import safe_generate_regular_report
-from monkey_island.cc.network_utils import local_ip_addresses, get_subnets
+from monkey_island.cc.services.reporting.report_exporter_manager import \
+    ReportExporterManager
+from monkey_island.cc.services.reporting.report_generation_synchronisation import \
+    safe_generate_regular_report
 
 __author__ = "itay.mizeretz"
 
@@ -40,7 +43,8 @@ class ReportService:
             'WebLogicExploiter': 'Oracle WebLogic Exploiter',
             'HadoopExploiter': 'Hadoop/Yarn Exploiter',
             'MSSQLExploiter': 'MSSQL Exploiter',
-            'VSFTPDExploiter': 'VSFTPD Backdoor Exploited'
+            'VSFTPDExploiter': 'VSFTPD Backdoor Exploiter',
+            'DrupalExploiter': 'Drupal Server Exploiter'
         }
 
     class ISSUES_DICT(Enum):
@@ -58,6 +62,7 @@ class ReportService:
         PTH_CRIT_SERVICES_ACCESS = 11
         MSSQL = 12
         VSFTPD = 13
+        DRUPAL = 14
 
     class WARNINGS_DICT(Enum):
         CROSS_SEGMENT = 0
@@ -184,10 +189,13 @@ class ReportService:
                 continue
             origin = NodeService.get_monkey_by_guid(telem['monkey_guid'])['hostname']
             for user in monkey_creds:
-                for pass_type in monkey_creds[user]:
+                for pass_type in PASS_TYPE_DICT:
+                    if pass_type not in monkey_creds[user] or not monkey_creds[user][pass_type]:
+                        continue
+                    username = monkey_creds[user]['username'] if 'username' in monkey_creds[user] else user
                     cred_row = \
                         {
-                            'username': user.replace(',', '.'),
+                            'username': username,
                             'type': PASS_TYPE_DICT[pass_type],
                             'origin': origin
                         }
@@ -350,6 +358,12 @@ class ReportService:
         return processed_exploit
 
     @staticmethod
+    def process_drupal_exploit(exploit):
+        processed_exploit = ReportService.process_general_exploit(exploit)
+        processed_exploit['type'] = 'drupal'
+        return processed_exploit
+
+    @staticmethod
     def process_exploit(exploit):
         exploiter_type = exploit['data']['exploiter']
         EXPLOIT_PROCESS_FUNCTION_DICT = {
@@ -364,7 +378,8 @@ class ReportService:
             'WebLogicExploiter': ReportService.process_weblogic_exploit,
             'HadoopExploiter': ReportService.process_hadoop_exploit,
             'MSSQLExploiter': ReportService.process_mssql_exploit,
-            'VSFTPDExploiter': ReportService.process_vsftpd_exploit
+            'VSFTPDExploiter': ReportService.process_vsftpd_exploit,
+            'DrupalExploiter': ReportService.process_drupal_exploit
         }
 
         return EXPLOIT_PROCESS_FUNCTION_DICT[exploiter_type](exploit)
@@ -612,7 +627,7 @@ class ReportService:
 
     @staticmethod
     def get_config_exploits():
-        exploits_config_value = ['exploits', 'general', 'exploiter_classes']
+        exploits_config_value = ['basic', 'exploiters', 'exploiter_classes']
         default_exploits = ConfigService.get_default_config(False)
         for namespace in exploits_config_value:
             default_exploits = default_exploits[namespace]
@@ -626,11 +641,11 @@ class ReportService:
 
     @staticmethod
     def get_config_ips():
-        return ConfigService.get_config_value(['basic_network', 'general', 'subnet_scan_list'], True, True)
+        return ConfigService.get_config_value(['basic_network', 'scope', 'subnet_scan_list'], True, True)
 
     @staticmethod
     def get_config_scan():
-        return ConfigService.get_config_value(['basic_network', 'general', 'local_network_scan'], True, True)
+        return ConfigService.get_config_value(['basic_network', 'scope', 'local_network_scan'], True, True)
 
     @staticmethod
     def get_issues_overview(issues, config_users, config_passwords):
@@ -660,6 +675,8 @@ class ReportService:
                     issues_byte_array[ReportService.ISSUES_DICT.MSSQL.value] = True
                 elif issue['type'] == 'hadoop':
                     issues_byte_array[ReportService.ISSUES_DICT.HADOOP.value] = True
+                elif issue['type'] == 'drupal':
+                    issues_byte_array[ReportService.ISSUES_DICT.DRUPAL.value] = True
                 elif issue['type'].endswith('_password') and issue['password'] in config_passwords and \
                         issue['username'] in config_users or issue['type'] == 'ssh':
                     issues_byte_array[ReportService.ISSUES_DICT.WEAK_PASSWORD.value] = True
@@ -729,8 +746,7 @@ class ReportService:
                         'stolen_creds': ReportService.get_stolen_creds(),
                         'azure_passwords': ReportService.get_azure_creds(),
                         'ssh_keys': ReportService.get_ssh_keys(),
-                        'strong_users': PTHReportService.get_strong_users_on_crit_details(),
-                        'pth_map': PTHReportService.get_pth_map()
+                        'strong_users': PTHReportService.get_strong_users_on_crit_details()
                     },
                 'recommendations':
                     {

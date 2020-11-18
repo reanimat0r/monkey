@@ -67,13 +67,13 @@ class AwsRunTableComponent extends React.Component {
     this.setState({selectAll, selection});
   };
 
-  getTrProps = (s, r) => {
+  getTrProps = (_, r) => {
     let color = 'inherit';
     if (r) {
       let instId = r.original.instance_id;
       if (this.isSelected(instId)) {
         color = '#ffed9f';
-      } else if (this.state.result.hasOwnProperty(instId)) {
+      } else if (Object.prototype.hasOwnProperty.call(this.state.result, instId)) {
         color = this.state.result[instId] ? '#00f01b' : '#f00000'
       }
     }

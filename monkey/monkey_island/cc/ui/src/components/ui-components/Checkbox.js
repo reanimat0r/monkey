@@ -1,4 +1,4 @@
-import '../../styles/Checkbox.scss'
+import '../../styles/components/Checkbox.scss'
 import React from 'react';
 
 class CheckboxComponent extends React.PureComponent {
@@ -19,7 +19,7 @@ class CheckboxComponent extends React.PureComponent {
   */
   constructor(props) {
     super(props);
-    if (this.props.hasOwnProperty('status')){
+    if (Object.prototype.hasOwnProperty.call(this.props, 'status')){
       this.status = this.props.status;
     } else {
       this.status = false

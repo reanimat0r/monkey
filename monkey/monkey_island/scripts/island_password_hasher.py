@@ -6,7 +6,8 @@ for more details.
 """
 
 import argparse
-from Crypto.Hash import SHA3_512
+
+from Crypto.Hash import SHA3_512  # noqa: DUO133
 
 
 def main():

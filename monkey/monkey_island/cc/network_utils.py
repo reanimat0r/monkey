@@ -5,9 +5,8 @@ import socket
 import struct
 import sys
 from typing import List
-from urllib.parse import urlparse
 
-from netifaces import interfaces, ifaddresses, AF_INET
+from netifaces import AF_INET, ifaddresses, interfaces
 from ring import lru
 
 __author__ = 'Barak'
@@ -86,8 +85,3 @@ def get_subnets():
             ]
         )
     return subnets
-
-
-def remove_port_from_ip_string(ip_string: str) -> str:
-    url = urlparse("http://" + ip_string)
-    return str(url.hostname)

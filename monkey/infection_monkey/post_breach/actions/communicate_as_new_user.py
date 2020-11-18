@@ -3,12 +3,12 @@ import random
 import string
 import subprocess
 
-from infection_monkey.utils.new_user_error import NewUserError
-from infection_monkey.utils.auto_new_user_factory import create_auto_new_user
 from common.data.post_breach_consts import POST_BREACH_COMMUNICATE_AS_NEW_USER
 from infection_monkey.post_breach.pba import PBA
 from infection_monkey.telemetry.post_breach_telem import PostBreachTelem
+from infection_monkey.utils.auto_new_user_factory import create_auto_new_user
 from infection_monkey.utils.environment import is_windows_os
+from infection_monkey.utils.new_user_error import NewUserError
 
 INFECTION_MONKEY_WEBSITE_URL = "https://infectionmonkey.com/"
 
@@ -44,7 +44,7 @@ class CommunicateAsNewUser(PBA):
 
     @staticmethod
     def get_random_new_user_name():
-        return USERNAME_PREFIX + ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
+        return USERNAME_PREFIX + ''.join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: DUO102
 
     @staticmethod
     def get_commandline_for_http_request(url, is_windows=is_windows_os()):

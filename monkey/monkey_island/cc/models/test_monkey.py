@@ -1,11 +1,12 @@
-import uuid
 import logging
+import uuid
 from time import sleep
 
 import pytest
 
 from monkey_island.cc.models.monkey import Monkey, MonkeyNotFoundError
 from monkey_island.cc.testing.IslandTestCase import IslandTestCase
+
 from .monkey_ttl import MonkeyTtl
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class TestMonkey(IslandTestCase):
         self.assertIsNotNone(Monkey.get_single_monkey_by_id(a_monkey.id))
 
         # Raise on non-existent monkey
-        with pytest.raises(MonkeyNotFoundError) as e_info:
+        with pytest.raises(MonkeyNotFoundError) as _:
             _ = Monkey.get_single_monkey_by_id("abcdefabcdefabcdefabcdef")
 
     def test_get_os(self):
